@@ -141,7 +141,7 @@ bool OMXReader::Open(std::string filename, bool dump_format, bool live /* =false
 
   timeout_default_duration = (int64_t) (timeout * 1e9);
   m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_filename    = filename; 
+  m_filename    = filename;
   m_speed       = DVD_PLAYSPEED_NORMAL;
   m_program     = UINT_MAX;
   const AVIOInterruptCB int_cb = { interrupt_cb, NULL };
@@ -196,6 +196,11 @@ bool OMXReader::Open(std::string filename, bool dump_format, bool live /* =false
        {
           av_dict_set(&d, "user_agent", user_agent.c_str(), 0);
        }
+    }
+    else if(m_filename.substr(0,7) == "rtsp://" || m_filename.substr(0,6) == "rtp://")
+    {
+     int ret = av_dict_set(&d, "rtsp_transport", "tcp", 0);
+     assert(ret == 0);
     }
     CLog::Log(LOGDEBUG, "COMXPlayer::OpenFile - avformat_open_input %s ", m_filename.c_str());
     result = m_dllAvFormat.avformat_open_input(&m_pFormatContext, m_filename.c_str(), iformat, &d);
@@ -349,7 +354,7 @@ bool OMXReader::Close()
     m_dllAvUtil.av_free(m_ioContext->buffer);
     m_dllAvUtil.av_free(m_ioContext);
   }
-  
+
   m_ioContext       = NULL;
   m_pFormatContext  = NULL;
 
@@ -585,7 +590,7 @@ OMXPacket *OMXReader::Read()
     if(duration > pStream->duration)
     {
       pStream->duration = duration;
-      duration = m_dllAvUtil.av_rescale_rnd(pStream->duration, (int64_t)pStream->time_base.num * AV_TIME_BASE, 
+      duration = m_dllAvUtil.av_rescale_rnd(pStream->duration, (int64_t)pStream->time_base.num * AV_TIME_BASE,
                                             pStream->time_base.den, AV_ROUND_NEAR_INF);
       if ((m_pFormatContext->duration == (int64_t)AV_NOPTS_VALUE)
           ||  (m_pFormatContext->duration != (int64_t)AV_NOPTS_VALUE && duration > m_pFormatContext->duration))
